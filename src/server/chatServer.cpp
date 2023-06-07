@@ -34,6 +34,7 @@ void chatServer::onConnection(const TcpConnectionPtr& conn)
 {
     if (!conn->connected())
     {
+        ChatService::getInstance()->clientCloseExceptional(conn);
         conn->shutdown();
     }
 }

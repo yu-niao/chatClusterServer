@@ -1,6 +1,6 @@
 
-chatServer : testmuduo.cpp
-	g++ testmuduo.cpp -o testmuduo -lmuduo_net -lmuduo_base -lpthread
+chatServer : testmysql.cpp
+	g++ testmysql.cpp -o testmysql -lmysqlclient
 
 clean:
-	rm -rf testmuduo
+	rm -rf testmysql

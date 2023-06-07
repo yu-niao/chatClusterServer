@@ -1,5 +1,7 @@
 #include "userModel.h"
 #include "db.h"
+#include <cstdio>
+#include <mysql/mysql.h>
 
 bool userModel::insert(User& user)
 {
@@ -19,5 +21,54 @@ bool userModel::insert(User& user)
         }
     }
 
+    return false;
+}
+
+// 根据号码查询用户信息
+User userModel::query(int id)
+{
+    char buf[1024] = {0};
+    snprintf(buf, 1024, "select* from user where id = %d", id);
+
+    MySql mysql;
+    if (mysql.connect())
+    {
+        MYSQL_RES* res = mysql.query(buf);
+        if (res != nullptr)
+        {
+            MYSQL_ROW row = mysql_fetch_row(res);
+            if (row != nullptr)
+            {
+                User user;
+                user.setId(atoi(row[0]));
+                user.setName(row[1]);
+                user.setPassword(row[2]);
+                user.setState(row[3]);
+
+                mysql_free_result(res);
+
+                return user;
+            }
+        }
+    }
+
+    return User();
+}
+
+// 更改用户状态
+bool userModel::updateState(User& user)
+{
+    char buf[1024] = {0};
+    snprintf(buf, 1024, "update user set state = '%s' where id = %d", 
+            user.getState().c_str(), user.getId());
+
+    MySql mysql;
+    if (mysql.connect())
+    {
+        if (mysql.update(buf))
+        {
+            return true;
+        }
+    }
     return false;
 }

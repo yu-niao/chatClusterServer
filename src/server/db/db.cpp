@@ -3,6 +3,7 @@
 #include <mysql/mysql.h>
 #include <string>
 #include <muduo/base/Logging.h>
+#include <iostream>
 
 static std::string server = "127.0.0.1";
 static std::string user = "root";
@@ -33,6 +34,7 @@ bool MySql::connect()
         return true;
     }
     LOG_INFO << "connect mysql failed!";
+    std::cout << "reason is : " << mysql_errno(conn_) << std::endl;
     return false;
 }
 
@@ -41,6 +43,7 @@ bool MySql::update(std::string sql)
     if (mysql_query(conn_, sql.c_str()))
     {
         LOG_INFO << __FILE__ << ":" << __LINE__ << ":" << sql << "更新失败!";
+        std::cout << mysql_error(conn_) << std::endl;
         return false;
     }
     return true;
