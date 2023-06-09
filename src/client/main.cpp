@@ -6,6 +6,7 @@
 #include <string>
 #include <thread>
 #include <unordered_map>
+#include <atomic>
 
 #include "user.h"
 #include "group.h"
@@ -22,6 +23,8 @@ std::vector<User> g_currentUserFriendList;
 std::vector<Group> g_currentUserGroupList;
 // 显示当前成功登录用户的基本信息
 void showCurrentUserData();
+// 控制聊天页面退出
+std::atomic_bool isMainMenuRunning = false;
 
 // 接收线程
 void readTaskHandler(int clientfd);
@@ -119,6 +122,9 @@ int main(int argc, char* argv[])
                         // 记录当前用户的好友列表信息
                         if (responsejs.contains("friends"))
                         {
+                            // 初始化
+                            g_currentUserFriendList.clear();
+
                             std::vector<std::string>  vec = responsejs["friends"];
                             for (auto& str : vec)
                             {
@@ -134,6 +140,9 @@ int main(int argc, char* argv[])
                         // 记录当前用户的群组列表信息
                         if (responsejs.contains("groups"))
                         {
+                            // 初始化
+                            g_currentUserGroupList.clear();
+
                             std::vector<std::string> groupVec = responsejs["groups"];
                             for (auto& group : groupVec)
                             {
@@ -184,9 +193,15 @@ int main(int argc, char* argv[])
                             }
                         }
 
-                        std::thread readTask(readTaskHandler, clientfd);
-                        readTask.detach();
-
+                        static int readThreadNum = 0;
+                        if (readThreadNum == 0)
+                        {
+                            std::thread readTask(readTaskHandler, clientfd);
+                            readTask.detach();
+                            readThreadNum++;
+                        }
+                        
+                        isMainMenuRunning = true;
                         mainMnu();
                     }
                 }
@@ -317,7 +332,7 @@ void mainMenu(int clientfd)
     help();
 
     char buffer[1024] = {0};
-    while(1)
+    while(isMainMenuRunning)
     {
         std::cin.getline(buffer, 1024);
         std::string commandbuf(buffer);
@@ -485,6 +500,10 @@ void loginout(int clientfd, std::string str)
     {
         std::cerr << "loginout failed!" << std::endl;
     } 
+    else
+    {
+        isMainMenuRunning = false;
+    }
 }
 
 void showshowCurrentUserData()
