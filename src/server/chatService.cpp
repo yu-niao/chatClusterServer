@@ -50,6 +50,11 @@ ChatService::ChatService()
         &ChatService::groupChat, this, std::placeholders::_1,
         std::placeholders::_2, std::placeholders::_3
     )));
+
+    msgHandlerMap_.emplace(std::make_pair(LOGINOUT_MSG, std::bind(
+        &ChatService::loginout, this, std::placeholders::_1,
+        std::placeholders::_2, std::placeholders::_3
+    )));
 }
 
 // 获取消息对应的处理器
@@ -84,7 +89,7 @@ void ChatService::login(const TcpConnectionPtr &conn, json &js, Timestamp time)
             json response;
             response["msgId"] = LOGIN_MSG_ACK;
             response["errno"] = 2;
-            response["errmsg"] = "该用户已经登录!";
+            response["errmsg"] = "this account is already login!";
             conn->send(response.dump());       
         }
         else 
@@ -129,6 +134,36 @@ void ChatService::login(const TcpConnectionPtr &conn, json &js, Timestamp time)
                 response["friends"] = v;
             }
 
+            // 查询用户群组信息
+            std::vector<Group> groupUserVec = groupModel_.queryGroups(id);
+            if (!groupUserVec.empty())
+            {
+                std::vector<std::string> groupVec;
+                for (auto& group : groupUserVec)
+                {
+                    json grpjson;
+                    grpjson["id"] = group.getId();
+                    grpjson["groupname"] = group.getName();
+                    grpjson["groupdesc"] = group.getDesc();
+
+                    std::vector<std::string> userVec;
+
+                    for (auto& user : group.getUsers())
+                    {
+                        json js2;
+                        js2["id"] = user.getId();
+                        js2["name"] = user.getName();
+                        js2["state"] = user.getState();
+                        js2["role"] = user.getRole();
+                        userVec.emplace_back(js2.dump());
+                    }
+                    grpjson["users"] = userVec;
+                    groupVec.emplace_back(grpjson.dump());
+                }
+
+                response["groups"] = groupVec;
+            }
+
             conn->send(response.dump());
         }
     }
@@ -138,7 +173,7 @@ void ChatService::login(const TcpConnectionPtr &conn, json &js, Timestamp time)
         json response;
         response["msgId"] = LOGIN_MSG_ACK;
         response["errno"] = 1;
-        response["errmsg"] = "用户名不存在或密码错误!";
+        response["errmsg"] = "id or password is invalid!";
         conn->send(response.dump());       
     }
 }
@@ -276,4 +311,22 @@ void ChatService::groupChat(const TcpConnectionPtr& conn, json& js, Timestamp ti
             offLineMsgModel_.insert(id, js.dump());
         }
     }
+}
+
+// 处理注销业务
+void ChatService::loginout(const TcpConnectionPtr& conn, json& js, Timestamp time)
+{
+    int id = js["id"].get<int>();
+
+    {
+        std::lock_guard<std::mutex> lock(connMutex_);
+        auto it = userConnMap_.find(id);
+        if (it != userConnMap_.end())
+        {
+            userConnMap_.erase(it);
+        }
+    }    
+    User user(id);
+    user.setState("oggline");
+    userModel_.updateState(user);    
 }
