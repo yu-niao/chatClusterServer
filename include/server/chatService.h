@@ -5,6 +5,7 @@
 #include "userModel.h"
 #include "offlinemessagemodel.h"
 #include "friendModel.h"
+#include "groupModel.h"
 
 #include <functional>
 #include <muduo/net/Callbacks.h>
@@ -33,6 +34,12 @@ public:
     void oneChat(const TcpConnectionPtr& conn, json& js, Timestamp time);
     // 添加好友业务
     void addFriend(const TcpConnectionPtr& conn, json& js, Timestamp time);
+    // 创建群组
+    void createGroup(const TcpConnectionPtr& conn, json& js, Timestamp time);
+    // 加入群组
+    void addGroup(const TcpConnectionPtr& conn, json& js, Timestamp time);
+    // 群组聊天业务
+    void groupChat(const TcpConnectionPtr& conn, json& js, Timestamp time);
     // 获取消息对应的处理器
     msgHandler getHandler(int msgId);
     // 处理客户端异常退出
@@ -52,14 +59,11 @@ private:
     // 存储在线用户的通信连接
     std::unordered_map<int, TcpConnectionPtr> userConnMap_;
 
-    // 数据操作类对象
+    // 数据库操作类对象
     userModel userModel_;
-
-    // 离线消息操作类
     OffLineMsgModel offLineMsgModel_;
-
-    // 添加好友操作类
     FriendModel friendModel_;
+    GroupModel groupModel_;
 
     std::mutex connMutex_;
 };

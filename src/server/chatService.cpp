@@ -26,13 +26,28 @@ ChatService::ChatService()
         std::placeholders::_2, std::placeholders::_3
     )));
 
-    msgHandlerMap_.emplace(std::make_pair(REG_MSG, std::bind(
+    msgHandlerMap_.emplace(std::make_pair(ONE_CHAT_MSG, std::bind(
         &ChatService::oneChat, this, std::placeholders::_1,
         std::placeholders::_2, std::placeholders::_3
     )));
 
-    msgHandlerMap_.emplace(std::make_pair(REG_MSG, std::bind(
+    msgHandlerMap_.emplace(std::make_pair(ADD_FRIEND_MSG, std::bind(
         &ChatService::addFriend, this, std::placeholders::_1,
+        std::placeholders::_2, std::placeholders::_3
+    )));
+
+    msgHandlerMap_.emplace(std::make_pair(CREATE_GROUP_MSG, std::bind(
+        &ChatService::createGroup, this, std::placeholders::_1,
+        std::placeholders::_2, std::placeholders::_3
+    )));
+
+    msgHandlerMap_.emplace(std::make_pair(ADD_GROUP_MSG, std::bind(
+        &ChatService::addGroup, this, std::placeholders::_1,
+        std::placeholders::_2, std::placeholders::_3
+    )));
+
+    msgHandlerMap_.emplace(std::make_pair(GROUP_CHAT_MSG, std::bind(
+        &ChatService::groupChat, this, std::placeholders::_1,
         std::placeholders::_2, std::placeholders::_3
     )));
 }
@@ -214,4 +229,51 @@ void ChatService::oneChat(const TcpConnectionPtr& conn, json& js, Timestamp time
     }
     // toid不在线
     offLineMsgModel_.insert(toid, js.dump());
+}
+
+//  创建群组
+void ChatService::createGroup(const TcpConnectionPtr& conn, json& js, Timestamp time)
+{
+    int creator = js["id"].get<int>();
+    std::string name = js["groupname"];
+    std::string desc = js["groupdesc"];
+
+    Group group(-1, name, desc);
+
+    if (groupModel_.createGroup(group))
+    {
+        groupModel_.addGroup(creator, group.getId(), "creator");
+    }
+}
+
+// 加入群组
+void ChatService::addGroup(const TcpConnectionPtr& conn, json& js, Timestamp time)
+{
+    int userid = js["id"].get<int>();
+    int groupid = js["groupid"].get<int>();
+
+    groupModel_.addGroup(userid, groupid, "normal");
+}
+
+// 群组聊天业务
+void ChatService::groupChat(const TcpConnectionPtr& conn, json& js, Timestamp time)
+{
+    int userid = js["id"].get<int>();
+    int groupid = js["groupid"].get<int>();
+
+    auto userVec = groupModel_.queryGroupUsers(userid, groupid);
+
+    std::lock_guard<std::mutex> lock(connMutex_);
+    for(auto& id: userVec)
+    {
+        auto it = userConnMap_.find(id);
+        if (it != userConnMap_.end())
+        {
+            it->second->send(js.dump());
+        }
+        else
+        {
+            offLineMsgModel_.insert(id, js.dump());
+        }
+    }
 }

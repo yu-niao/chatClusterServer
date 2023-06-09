@@ -7,12 +7,11 @@ class User
 {
 public:
     User(int id = -1, std::string name = "", std::string password = "", std::string state = "offline")
-    {
-        this->id_ = id;
-        this->name_ = name;
-        this->password_ = password;
-        this->state_ = state;
-    }
+        : id_(id)
+        , name_(name)
+        , password_(password)
+        , state_(state)
+    {}
 
     void setId(int id) { id_ = id; }
     void setName(std::string name) { name_ = name; }

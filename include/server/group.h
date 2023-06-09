@@ -1,10 +1,10 @@
 #ifndef _GROUP_H_
 #define _GROUP_H_
 
+#include "groupuser.h"
+
 #include <string>
 #include <vector>
-
-class GroupUser;
 
 class Group
 {
