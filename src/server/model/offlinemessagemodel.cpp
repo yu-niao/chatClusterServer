@@ -7,10 +7,10 @@ void OffLineMsgModel::insert(int userid, std::string msg)
     char sql[1024] = {0};
     snprintf(sql, 1024, "insert into offLineMessage values(%d, '%s')", userid, msg.c_str());
 
-    MySql *mysql;
-    if (mysql->connect()) 
+    MySql mysql;
+    if (mysql.connect()) 
     {
-        mysql->update(sql);
+        mysql.update(sql);
     }
 }
 
@@ -19,10 +19,10 @@ void OffLineMsgModel::remove(int userid)
     char sql[1024] = {0};
     snprintf(sql, 1024, "delete from offLineMessage where userid = %d", userid);
 
-    MySql *mysql;
-    if (mysql->connect()) 
+    MySql mysql;
+    if (mysql.connect()) 
     {
-        mysql->update(sql);
+        mysql.update(sql);
     }
 
 }
@@ -34,10 +34,10 @@ std::vector<std::string> OffLineMsgModel::query(int userid)
 
     std::vector<std::string> v;
 
-    MySql* mysql;
-    if (mysql->connect())
+    MySql mysql;
+    if (mysql.connect())
     {   
-        MYSQL_RES* res = mysql->query(sql);
+        MYSQL_RES* res = mysql.query(sql);
         if (res != nullptr)
         {
             MYSQL_ROW row;
@@ -50,5 +50,5 @@ std::vector<std::string> OffLineMsgModel::query(int userid)
             return v;
         }
     }
-    return v;
+    return std::vector<std::string>();
 }

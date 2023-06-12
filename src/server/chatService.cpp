@@ -55,6 +55,13 @@ ChatService::ChatService()
         &ChatService::loginout, this, std::placeholders::_1,
         std::placeholders::_2, std::placeholders::_3
     )));
+
+    if (redis_.connect())
+    {
+        // 设置回调
+        redis_.initNotifyHandler(std::bind(&ChatService::handleRedisSubscribeMessage, this,
+            std::placeholders::_1, std::placeholders::_2));
+    }
 }
 
 // 获取消息对应的处理器
@@ -74,19 +81,20 @@ msgHandler ChatService::getHandler(int msgId)
 }
 
 // 处理登录业务
-void ChatService::login(const TcpConnectionPtr &conn, json &js, Timestamp time)
+void ChatService::login(const TcpConnectionPtr &conn, json& js, Timestamp time)
 {
     int id = js["id"].get<int>();
     std::string pwd = js["password"];
 
     User user = userModel_.query(id);
-
-    if (user.getId() != -1 && user.getPassword() == pwd)
+    json response;
+    
+    if (user.getId() == id && user.getPassword() == pwd)
     {
+
         if (user.getState() == "online")
         {
             // 该用户已经登录
-            json response;
             response["msgId"] = LOGIN_MSG_ACK;
             response["errno"] = 2;
             response["errmsg"] = "this account is already login!";
@@ -100,23 +108,24 @@ void ChatService::login(const TcpConnectionPtr &conn, json &js, Timestamp time)
                 userConnMap_.emplace(std::make_pair(id, conn));
             }
             // 登录成功
+
+            redis_.subscribe(id);
+
             user.setState("online");
             userModel_.updateState(user);
 
-            json response;
             response["msgId"] = LOGIN_MSG_ACK;
             response["errno"] = 0;
             response["id"] = user.getId();
             response["name"] = user.getName();
-
+            
             // 查询是否有离线信息
             std::vector<std::string> vec = offLineMsgModel_.query(id);
             if (!vec.empty())
             {
-                js["offlinemsg"] = vec;
+                response["offlinemsg"] = vec;
                 offLineMsgModel_.remove(id);
             }
-
             // 查询好友信息
             std::vector<User> vec1 = friendModel_.query(id);
             if (!vec1.empty())
@@ -129,10 +138,11 @@ void ChatService::login(const TcpConnectionPtr &conn, json &js, Timestamp time)
                     js1["name"] = it.getName();
                     js1["state"] = it.getState();
 
-                    v.emplace_back(js.dump());
+                    v.emplace_back(js1.dump());
                 }
                 response["friends"] = v;
             }
+            
 
             // 查询用户群组信息
             std::vector<Group> groupUserVec = groupModel_.queryGroups(id);
@@ -170,7 +180,6 @@ void ChatService::login(const TcpConnectionPtr &conn, json &js, Timestamp time)
     else
     {
         // 登录失败
-        json response;
         response["msgId"] = LOGIN_MSG_ACK;
         response["errno"] = 1;
         response["errmsg"] = "id or password is invalid!";
@@ -234,6 +243,8 @@ void ChatService::clientCloseExceptional(const TcpConnectionPtr& conn)
         }
     }
 
+    redis_.unsubscribe(user.getId());
+
     if (user.getId() != -1)
     {
         user.setState("offline");
@@ -262,7 +273,15 @@ void ChatService::oneChat(const TcpConnectionPtr& conn, json& js, Timestamp time
             return;
         }
     }
-    // toid不在线
+    // toid 是否在线
+    User user = userModel_.query(toid);
+    if (user.getState() == "online")
+    {
+        redis_.publish(toid, js.dump());
+        return;
+    }
+
+    // toid 不在线
     offLineMsgModel_.insert(toid, js.dump());
 }
 
@@ -306,9 +325,18 @@ void ChatService::groupChat(const TcpConnectionPtr& conn, json& js, Timestamp ti
         {
             it->second->send(js.dump());
         }
-        else
+        else 
         {
-            offLineMsgModel_.insert(id, js.dump());
+            User user = userModel_.query(id);
+            if (user.getState() == "online")
+            {
+                redis_.publish(id, js.dump());
+            }
+            else  
+            {
+                offLineMsgModel_.insert(id, js.dump());
+            }
+            
         }
     }
 }
@@ -325,8 +353,25 @@ void ChatService::loginout(const TcpConnectionPtr& conn, json& js, Timestamp tim
         {
             userConnMap_.erase(it);
         }
-    }    
+    }
+
+    redis_.unsubscribe(id);
+
     User user(id);
-    user.setState("oggline");
+    user.setState("offline");
     userModel_.updateState(user);    
+}
+
+// 从redis消息队列中获取订阅的消息
+void ChatService::handleRedisSubscribeMessage(int userid, std::string msg)
+{
+    std::lock_guard<std::mutex> lock(connMutex_);
+    auto it = userConnMap_.find(userid);
+    if (it != userConnMap_.end())
+    {
+        it->second->send(msg);
+        return;
+    }
+
+    offLineMsgModel_.insert(userid, msg);
 }

@@ -6,6 +6,7 @@
 #include "offlinemessagemodel.h"
 #include "friendModel.h"
 #include "groupModel.h"
+#include "redis.h"
 
 #include <functional>
 #include <muduo/net/Callbacks.h>
@@ -48,6 +49,8 @@ public:
     void clientCloseExceptional(const TcpConnectionPtr&);
     // 处理服务器异常退出
     void reset();
+    // 从redis消息队列中获取订阅的消息
+    void handleRedisSubscribeMessage(int, std::string);
 
     ChatService(const ChatService&) = delete;
     ChatService& operator=(const ChatService&) = delete;
@@ -66,6 +69,9 @@ private:
     OffLineMsgModel offLineMsgModel_;
     FriendModel friendModel_;
     GroupModel groupModel_;
+
+    // redis 操作对象
+    Redis redis_;
 
     std::mutex connMutex_;
 };

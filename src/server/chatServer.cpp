@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <string>
+#include <iostream>
 using json = nlohmann::json;
 
 chatServer::chatServer(EventLoop* loop, 
@@ -44,6 +45,8 @@ void chatServer::onMessage(const TcpConnectionPtr& conn,
                         Timestamp time)
 {
     std::string buf = buffer->retrieveAllAsString();
+
+    std::cout << "chatServer: " << buf << std::endl;
     json js = json::parse(buf);
 
     auto msgHandler = ChatService::getInstance()->getHandler(js["msgId"].get<int>());

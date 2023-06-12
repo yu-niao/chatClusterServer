@@ -3,7 +3,8 @@ cmake_minimum_required(VERSION 3.26)
 aux_source_directory(. SRC_LIST)
 aux_source_directory(./db DB_LIST)
 aux_source_directory(./model MODEL_LIST)
+aux_source_directory(./redis REDIS_LIST)
 
-add_executable(chatServer ${SRC_LIST} ${DB_LIST} ${MODEL_LIST})
+add_executable(chatServer ${SRC_LIST} ${DB_LIST} ${MODEL_LIST} ${REDIS_LIST})
 
-target_link_libraries(chatServer muduo_net muduo_base pthread mysqlclient)
+target_link_libraries(chatServer muduo_net muduo_base pthread mysqlclient hiredis)

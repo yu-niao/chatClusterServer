@@ -8,10 +8,10 @@ void FriendModel::insert(int userid, int friendid)
     char sql[1024] = {0};
     snprintf(sql, 1024, "insert into friend values(%d, %d)", userid, friendid);
 
-    MySql* mysql;
-    if (mysql->connect())
+    MySql mysql;
+    if (mysql.connect())
     {
-        mysql->update(sql);
+        mysql.update(sql);
     }
 }
 
@@ -24,10 +24,10 @@ std::vector<User> FriendModel::query(int userid)
     snprintf(sql, 1024, 
     "select a.id, a.name, a.state from user a join friend b on a.id = b.friendid where b.userid = %d", userid);
 
-    MySql* mysql;
-    if (mysql->connect())
+    MySql mysql;
+    if (mysql.connect())
     {
-        MYSQL_RES* res = mysql->query(sql);
+        MYSQL_RES* res = mysql.query(sql);
         if (res != nullptr)
         {
             MYSQL_ROW row;

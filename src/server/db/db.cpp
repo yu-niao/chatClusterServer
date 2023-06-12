@@ -29,7 +29,7 @@ bool MySql::connect()
     if (p != nullptr)
     {
         // 设置字符编码
-        mysql_set_character_set(conn_, "utf8");
+        mysql_query(conn_, "set names gbk");
         LOG_INFO << "connect mysql success!";
         return true;
     }
