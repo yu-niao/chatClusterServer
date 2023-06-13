@@ -22,7 +22,7 @@ std::vector<User> FriendModel::query(int userid)
 
     char sql[1024] = {0};
     snprintf(sql, 1024, 
-    "select a.id, a.name, a.state from user a join friend b on a.id = b.friendid where b.userid = %d", userid);
+    "select a.id, a.name, a.state from user a inner join friend b on a.id = b.friendid where b.userid = %d", userid);
 
     MySql mysql;
     if (mysql.connect())

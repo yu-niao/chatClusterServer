@@ -43,7 +43,7 @@ std::vector<Group> GroupModel::queryGroups(int userid)
 {
     char sql[1024] = {0};
     snprintf(sql, 1024, "select a.id, a.name, a.desc from allGroup a    \
-    join groupUser b on a.id = b.groupid where b.userid = %d", userid);
+    inner join groupUser b on a.id = b.groupid where b.userid = %d", userid);
 
     std::vector<Group> groupVec;
     MySql mysql;
@@ -71,7 +71,7 @@ std::vector<Group> GroupModel::queryGroups(int userid)
     for (auto& group : groupVec)
     {
         snprintf(sql, 1024, "select a.id, a.name, a.state, b.grouprole from user a \
-        join groupUser b on b.userid = a.id where b.groupid = %d", group.getId());
+        inner join groupUser b on b.userid = a.id where b.groupid = %d", group.getId());
 
         MYSQL_RES* res = mysql.query(sql);
         if (res != nullptr)

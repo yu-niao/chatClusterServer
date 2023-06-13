@@ -289,7 +289,7 @@ std::unordered_map<std::string, std::string> commandMap = {
   {"creategroup", "添加群组,格式creategroup:groupname:groupdesc"},
   {"addgroup", "加入群组,格式addgroup:groupid"},
   {"groupchat", "群聊,格式groupchat:groupid:message"},
-  {"loginout", "注销,格式quit"}
+  {"loginout", "注销,格式loginout"}
 };
 
 std::unordered_map<std::string, std::function<void(int, std::string)>> commandHandlerMap = {
